@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glasgow Central in 3D</title>
+  <style>
+    :root { --bg: rgba(14, 18, 24, 0.78); --fg: #eef1f4; --muted: #9aa6b2; --accent: #e3b420; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1117; color: var(--fg); font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    canvas { display: block; }
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0d1117; z-index: 10; transition: opacity .6s; }
+    #loading.done { opacity: 0; pointer-events: none; }
+    #loading h1 { font: 600 22px/1.2 Georgia, serif; letter-spacing: .06em; margin: 0 0 14px; }
+    #load-track { width: 280px; height: 3px; background: #273040; border-radius: 2px; overflow: hidden; }
+    #load-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+    #load-msg { color: var(--muted); margin-top: 10px; min-height: 1.4em; }
+    #panel { position: fixed; top: 12px; left: 12px; width: 250px; background: var(--bg); backdrop-filter: blur(8px); border-radius: 10px; padding: 12px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+    #panel.hidden { display: none; }
+    #panel h2 { margin: 0 0 2px; font: 600 15px/1.2 Georgia, serif; letter-spacing: .04em; }
+    #panel .sub { color: var(--muted); margin-bottom: 10px; }
+    #views { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    button { background: #232b36; color: var(--fg); border: 1px solid #334053; border-radius: 6px; padding: 5px 8px; cursor: pointer; font: inherit; }
+    button:hover { background: #2d3746; }
+    button.active { border-color: var(--accent); color: #fff; }
+    label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; color: var(--muted); }
+    select, input[type=range] { flex: 1; max-width: 140px; }
+    select { background: #232b36; color: var(--fg); border: 1px solid #334053; border-radius: 5px; padding: 3px; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    #mode { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--bg); padding: 6px 12px; border-radius: 6px; }
+    #mode:empty { display: none; }
+    #credit { position: fixed; right: 10px; bottom: 8px; color: rgba(255,255,255,.55); font-size: 11px; }
+    @media (max-width: 600px) { #panel { width: calc(100% - 48px); } }
+  </style>
+</head>
+<body>
+  <div id="loading"><div>
+    <h1>GLASGOW CENTRAL</h1>
+    <div id="load-track"><div id="load-bar"></div></div>
+    <div id="load-msg">Starting…</div>
+  </div></div>
+  <div id="panel">
+    <h2>Glasgow Central</h2>
+    <div class="sub">Central Station &amp; surrounding streets</div>
+    <div id="views"></div>
+    <label>Time <span id="time-label"></span></label>
+    <input id="time" type="range" min="4" max="23.5" step="0.25" style="width:100%;max-width:none" />
+    <label>Month
+      <select id="month">
+        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+      </select>
+    </label>
+    <label>Weather
+      <select id="weather">
+        <option value="clear">Clear</option><option value="hazy">Hazy</option>
+        <option value="overcast">Glasgow grey</option><option value="night">Night</option>
+      </select>
+    </label>
+    <label>Quality
+      <select id="quality"><option value="high">High</option><option value="fast">Fast</option></select>
+    </label>
+    <button id="walk" style="width:100%;margin-top:6px">Walk at street level (F)</button>
+    <div class="hint">Drag to orbit · right-drag to pan · scroll to zoom · H hides this panel</div>
+  </div>
+  <div id="mode"></div>
+  <div id="credit"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "glasgow-3d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Photorealistic real-time 3D model of central Glasgow, starting with Glasgow Central Station",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "fetch-osm": "node scripts/fetch-osm.mjs",
+    "screenshot": "node scripts/screenshot.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "vite": "^8.3.1"
+  }
+}

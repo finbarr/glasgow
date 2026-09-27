@@ -246,6 +246,32 @@ export function buildBlock(ctx, block, idx, overrides = []) {
     buildRectBuilding(lctx, lr, lot.fronts, spec);
   }
 
+  // back court outbuildings (stores, workshops, light wells) so courts are not empty
+  const inner = { x0: x0 + D + 1, x1: x1 - D - 1, z0: z0 + D + 1, z1: z1 - D - 1 };
+  if (inner.x1 - inner.x0 > 8 && inner.z1 - inner.z0 > 8) {
+    ctx.batch.setChunkFrom(cx, cz);
+    const n = Math.floor(((inner.x1 - inner.x0) * (inner.z1 - inner.z0)) / 260);
+    for (let i = 0; i < n; i++) {
+      if (!rng.chance(0.6)) continue;
+      const w = rng.range(5, 14), d = rng.range(4, 10), h = rng.range(3, 7.5);
+      const bx = rng.range(inner.x0 + w / 2, inner.x1 - w / 2), bz = rng.range(inner.z0 + d / 2, inner.z1 - d / 2);
+      if (inner.x1 - inner.x0 < w || inner.z1 - inner.z0 < d) continue;
+      const g = groundHeight(bx, bz) + KERB;
+      const mat = rng.pick(['brick', 'brick', 'render', 'stoneBlond']);
+      ctx.batch.setColor(...(mat === 'stoneBlond' ? [0.75, 0.72, 0.68] : [0.9, 0.9, 0.9]));
+      ctx.batch.box(mat, bx, g + h / 2 - 0.2, bz, w, h + 0.4, d, 0, { bottom: false });
+      ctx.batch.setColor(0.6, 0.6, 0.6);
+      if (rng.chance(0.5)) {
+        // glazed roof light
+        ctx.batch.box('lead', bx, g + h + 0.05, bz, w + 0.2, 0.1, d + 0.2);
+        ctx.batch.box('glass', bx, g + h + 0.4, bz, w * 0.6, 0.6, d * 0.6, 0, { bottom: false });
+      } else {
+        ctx.batch.box('concrete', bx, g + h + 0.05, bz, w + 0.2, 0.12, d + 0.2);
+      }
+      ctx.batch.resetColor();
+    }
+  }
+
   // back court ground
   ctx.batch.setChunkFrom(cx, cz);
   ctx.batch.setColor(0.7, 0.7, 0.7);

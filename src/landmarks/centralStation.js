@@ -21,7 +21,8 @@ const HOTEL_RED = [1.0, 0.94, 0.9];
 
 export const STATION_INFO = {
   shed: SHED, deck: DECK,
-  walkable: (x, z) => x > STATION.x0 && x < STATION.x1 && z > STATION.z0 && z < SHED.z1,
+  // on the deck inside the station; over Argyle Street only if already above street level
+  walkable: (x, z, y = 10) => x > STATION.x0 && x < STATION.x1 && z > STATION.z0 && (z < 119 || (z < SHED.z1 && y > -3)),
 };
 
 /** Sub-frame starting at u along an existing frame. */
@@ -121,6 +122,9 @@ function buildHotel(ctx) {
   rectRoof(ctx, hw, hotelTop + 0.1, { type: 'mansard', ridgeAxis: 'z', maxRise: 5.5, stone, dormers: dormersW, chimneys: false });
   for (let x = -60; x < -10; x += 12.5) chimney(ctx, x, -120, 1.2, 3.6, hotelTop + 3, hotelTop + 8.5, stone);
   for (let z = -105; z < -50; z += 13) chimney(ctx, -69, z, 3.6, 1.2, hotelTop + 3, hotelTop + 8.5, stone);
+  // projecting pilaster strips marking the bays of the Gordon St and Hope St elevations
+  for (const u of [5, 13.6, 22.2, 30.8, 39.4, 48, 56.6]) frN.box(batch, stone, u - 0.45, u + 0.45, DECK + 5.4, hotelTop - 0.6, 0, 0.22);
+  for (const u of [9, 18, 27, 36, 45, 54, 63, 72]) frW.box(batch, stone, u - 0.45, u + 0.45, DECK + 5.4, hotelTop - 0.6, 0, 0.22);
   // Dutch gables on Gordon Street
   for (const gx of [-52, -24]) {
     const fr = subFrame(frN, gw.x1 - gx - 4);
@@ -780,7 +784,11 @@ function buildArgyleBridge(ctx) {
       ground: 'shops', cornice: false, parapet: 0, strings: false,
     }));
   }
-  // deck side walls above the screens north/south are the shed itself.
+  // plate girders closing the gap between the shopfronts and the deck
+  for (const fr of [fN, fS]) {
+    fr.rect(batch, 'ironDark', 0, soffit - 1.25, x1 - x0, DECK + 0.4);
+    for (let u = 1.6; u < x1 - x0; u += 3.2) fr.box(batch, 'ironDark', u - 0.08, u + 0.08, soffit - 1.2, DECK + 0.3, 0, 0.06);
+  }
   void chimney;
 }
 

@@ -47,7 +47,7 @@ for (const v of views) {
   const f0 = await page.evaluate(() => window.__glasgow.frames);
   await page.waitForFunction((f) => window.__glasgow.frames > f + 3, f0, { timeout: 600000 });
   const suffix = process.env.SUFFIX ? `-${process.env.SUFFIX}` : '';
-  await page.screenshot({ path: `screenshots/${v.startsWith('cam:') ? 'custom-' + views.indexOf(v) : v}${suffix}.png` });
+  await page.screenshot({ timeout: 0, path: `screenshots/${v.startsWith('cam:') ? 'custom-' + views.indexOf(v) : v}${suffix}.png` });
   console.log('saved', v);
 }
 await browser.close();

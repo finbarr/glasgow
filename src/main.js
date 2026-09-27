@@ -34,8 +34,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.4, 12000);
 
 // Street-level height for walking and for placing viewpoints.
-function floorAt(x, z) {
-  if (STATION_INFO.walkable(x, z)) return STATION_INFO.deck;
+function floorAt(x, z, y) {
+  if (STATION_INFO.walkable(x, z, y)) return STATION_INFO.deck;
   return groundHeight(x, z) + KERB;
 }
 
@@ -47,6 +47,7 @@ const VIEWS = {
   concourse: { label: 'Concourse', pos: [-30, 1.7, -106], target: [0, 6, -52], street: true },
   platforms: { label: 'Platforms', pos: [island.x1 - 2.2, 1.7, -40], target: [island.x1 - 3, 4, 60], street: true },
   umbrella: { label: "Hielanman's Umbrella", pos: [97, 1.7, 121.6], target: [40, -1, 130], street: true },
+  under: { label: 'Under the bridge', pos: [48, 1.7, 122.5], target: [-10, -2, 132], street: true, under: true },
   union: { label: 'Union Street', pos: [85, 1.7, -10], target: [66, 9, -70], street: true },
   hope: { label: 'Hope Street', pos: [-95.5, 1.7, 70], target: [-80, 4, -60], street: true },
   roofs: { label: 'Station roof', pos: [-190, 95, -10], target: [-10, 8, 10] },
@@ -105,7 +106,7 @@ function toggleWalk() {
   if (mode === 'orbit') {
     mode = 'walk';
     const p = camera.position;
-    p.y = floorAt(p.x, p.z) + 1.7;
+    p.y = floorAt(p.x, p.z, p.y) + 1.7;
     walk.lock();
     $('#mode').textContent = 'Walking — WASD to move, Shift to run, F to exit';
   } else {
@@ -130,7 +131,7 @@ function setView(name, instant = false) {
   const v = VIEWS[name];
   if (!v) return;
   const pos = new THREE.Vector3(...v.pos);
-  if (v.street) pos.y = floorAt(pos.x, pos.z) + v.pos[1];
+  if (v.street) pos.y = floorAt(pos.x, pos.z, v.under ? -10 : 10) + v.pos[1];
   const tgt = new THREE.Vector3(...v.target);
   if (instant) {
     camera.position.copy(pos); orbit.target.copy(tgt); orbit.update();
@@ -187,12 +188,16 @@ function setupLightPool() {
   for (let i = 0; i < POOL; i++) {
     const l = new THREE.PointLight(0xffe2c0, 0, 32, 2);
     l.castShadow = false;
+    l.visible = false;
     pool.push(l); scene.add(l);
   }
 }
 function updateLightPool(focus) {
   const n = env.night;
-  if (n < 0.05) { if (pool[0].intensity !== 0) pool.forEach((l) => { l.intensity = 0; }); return; }
+  // hidden by day so the sixteen lights cost nothing in the shaders
+  const on = n >= 0.05;
+  pool.forEach((l) => { l.visible = on; });
+  if (!on) return;
   const lamps = world.lamps;
   const scored = lamps.map((l) => [l, l.p.distanceToSquared(focus)]).sort((a, b) => a[1] - b[1]).slice(0, POOL);
   scored.forEach(([lamp], i) => {
@@ -232,10 +237,10 @@ function frame() {
     if (keys.KeyA || keys.ArrowLeft) walk.moveRight(-speed);
     if (keys.KeyD || keys.ArrowRight) walk.moveRight(speed);
     const p = camera.position;
-    p.y += (floorAt(p.x, p.z) + 1.7 - p.y) * Math.min(1, dt * 10);
+    p.y += (floorAt(p.x, p.z, p.y) + 1.7 - p.y) * Math.min(1, dt * 10);
   } else {
     orbit.update();
-    const minY = floorAt(camera.position.x, camera.position.z) + 0.8;
+    const minY = floorAt(camera.position.x, camera.position.z, camera.position.y) + 0.8;
     if (camera.position.y < minY) camera.position.y = minY;
   }
   // shadows follow the view

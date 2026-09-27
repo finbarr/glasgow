@@ -178,3 +178,53 @@ export function trainLivery() {
   }
   return tex(c);
 }
+
+/** Blurry lit-room interior seen through a window (used by glass at night). */
+export function roomInterior(seed = 1) {
+  const w = 256, h = 256, c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  let s = seed;
+  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  // four variants in quadrants: plain room, curtains, blinds, office
+  const quad = (qx, qy, kind) => {
+    const x0 = qx * 128, y0 = qy * 128;
+    const grad = g.createLinearGradient(0, y0, 0, y0 + 128);
+    grad.addColorStop(0, '#fff1d6'); grad.addColorStop(0.35, '#d9b88a'); grad.addColorStop(1, '#5a4330');
+    g.fillStyle = grad; g.fillRect(x0, y0, 128, 128);
+    // back wall furniture silhouettes
+    g.fillStyle = 'rgba(40,28,20,0.55)';
+    for (let i = 0; i < 3; i++) g.fillRect(x0 + r() * 100, y0 + 70 + r() * 20, 20 + r() * 30, 40);
+    if (kind === 1) { g.fillStyle = 'rgba(120,40,40,0.85)'; g.fillRect(x0, y0, 26, 128); g.fillRect(x0 + 102, y0, 26, 128); }
+    if (kind === 2) { g.fillStyle = 'rgba(235,225,205,0.8)'; for (let y = 0; y < 60; y += 5) g.fillRect(x0, y0 + y, 128, 3); }
+    if (kind === 3) { g.fillStyle = 'rgba(255,255,245,0.9)'; g.fillRect(x0 + 20, y0 + 6, 88, 6); g.fillStyle = 'rgba(60,70,80,0.6)'; g.fillRect(x0 + 10, y0 + 80, 108, 10); }
+  };
+  quad(0, 0, 0); quad(1, 0, 1); quad(0, 1, 2); quad(1, 1, 3);
+  const t = tex(c);
+  return t;
+}
+
+export function shopInterior() {
+  const w = 256, h = 256, c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#f4ead8'); grad.addColorStop(1, '#8d7a63');
+  g.fillStyle = grad; g.fillRect(0, 0, w, h);
+  // shelving and displays
+  for (let x = 8; x < w; x += 64) {
+    g.fillStyle = 'rgba(70,55,40,0.55)'; g.fillRect(x, 90, 48, 150);
+    g.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let y = 100; y < 230; y += 26) g.fillRect(x + 3, y, 42, 4);
+    const hue = (x * 37) % 360;
+    g.fillStyle = `hsla(${hue},30%,50%,0.6)`;
+    for (let y = 104; y < 230; y += 26) g.fillRect(x + 6, y + 6, 36, 12);
+  }
+  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(0, 0, w, h);
+  // ceiling spots
+  g.fillStyle = 'rgba(255,255,255,0.95)';
+  for (let x = 20; x < w; x += 44) { g.beginPath(); g.arc(x, 12, 6, 0, Math.PI * 2); g.fill(); }
+  const t = tex(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}

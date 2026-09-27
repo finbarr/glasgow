@@ -15,7 +15,7 @@ function std(opts, set) {
   return m;
 }
 
-/** Lit-window emissive driven by vertex colour and a global night factor. */
+/** Lit-window emissive driven by vertex colour, an interior texture and a global night factor. */
 function nightGlow(material, strength = 1, power = 4, glow = [1.0, 0.76, 0.48]) {
   material.emissive.setRGB(0, 0, 0);
   const g = glow.map((v) => v.toFixed(3)).join(', ');
@@ -23,16 +23,23 @@ function nightGlow(material, strength = 1, power = 4, glow = [1.0, 0.76, 0.48]) 
     shader.uniforms.uNight = nightUniform;
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform float uNight;')
+      .replace('#include <map_fragment>', `
+        #ifdef USE_MAP
+          vec3 interior = texture2D(map, vMapUv).rgb;
+          diffuseColor.rgb *= mix(vec3(1.0), interior, 0.6);
+        #else
+          vec3 interior = vec3(1.0);
+        #endif`)
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         #ifdef USE_COLOR
-          vec3 glowCol = pow(vColor.rgb, vec3(${power.toFixed(1)})) * vec3(${g});
+          vec3 glowCol = pow(vColor.rgb, vec3(${power.toFixed(1)})) * vec3(${g}) * interior;
           totalEmissiveRadiance += glowCol * uNight * ${strength.toFixed(2)};
         #endif`,
       );
   };
-  material.customProgramCacheKey = () => 'nightglow' + strength + power + g;
+  material.customProgramCacheKey = () => 'nightglow' + strength + power + g + !!material.map;
   return material;
 }
 
@@ -79,9 +86,11 @@ export async function createMaterials(renderer, progress = () => {}) {
   M.render = std({ color: 0xd8d2c4, vertexColors: true, roughness: 0.95, map: sets.grime.map });
   M.panel = std({ vertexColors: true, metalness: 0.5 }, sets.panels);
 
-  M.glass = nightGlow(std({ color: 0x151b20, roughness: 0.05, metalness: 0.1, vertexColors: true, envMapIntensity: 2.2 }), 1.4, 4);
+  M.glass = nightGlow(std({ color: 0x151b20, roughness: 0.05, metalness: 0.1, vertexColors: true, envMapIntensity: 2.2 }), 0.8, 4);
   M.curtainGlass = nightGlow(std({ color: 0x223840, roughness: 0.04, metalness: 0.5, vertexColors: true, envMapIntensity: 2.0 }), 0.9, 5, [1.0, 0.95, 0.85]);
-  M.shopGlass = nightGlow(std({ color: 0x1c2428, roughness: 0.03, metalness: 0.15, vertexColors: true, envMapIntensity: 2.2 }), 2.2, 2, [1.0, 0.92, 0.8]);
+  M.shopGlass = nightGlow(std({ color: 0x1c2428, roughness: 0.03, metalness: 0.15, vertexColors: true, envMapIntensity: 2.2 }), 0.9, 2, [1.0, 0.9, 0.75]);
+  M.glass.map = S.roomInterior(3);
+  M.shopGlass.map = S.shopInterior();
   M.frame = std({ color: 0xe9e6de, roughness: 0.55, map: sets.grime.map });
   M.frameDark = std({ color: 0x23282a, roughness: 0.5, metalness: 0.3 });
   M.ironDark = std({ color: 0x1f2826, roughness: 0.45, metalness: 0.5, vertexColors: true, map: sets.grime.map, roughnessMap: sets.grime.roughnessMap });
@@ -134,7 +143,7 @@ export async function createMaterials(renderer, progress = () => {}) {
   M.trainGrey = std({ color: 0x3a3d42, roughness: 0.5, metalness: 0.5 });
   M.trainYellow = std({ color: 0xe8b400, roughness: 0.4 });
   M.lampGlow = std({ color: 0xfff0d8, emissive: 0xffd9a0, emissiveIntensity: 0 });
-  M.lampGlow.userData.nightEmissive = 6;
+  M.lampGlow.userData.nightEmissive = 2;
   M.carPaint = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.6, clearcoat: 1, clearcoatRoughness: 0.08 });
   M.carGlass = std({ color: 0x0a0d10, roughness: 0.05, metalness: 0.3 });
   M.tyre = std({ color: 0x151515, roughness: 0.9 });

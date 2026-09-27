@@ -52,7 +52,17 @@ function windowOpening(ctx, fr, u0, u1, v0, v1, spec, opts = {}) {
   const gc = opts.glassColor || glassColor(rng, opts.litP ?? 0.35);
   batch.setColor(gc[0], gc[1], gc[2]);
   const gm = opts.glassMat || 'glass';
-  batch.quad(gm, fr.p(u0, v0, d), fr.p(u1, v0, d), fr.p(u1, v1, d), fr.p(u0, v1, d), [0, 0, 1, 0, 1, 1, 0, 1]);
+  // UVs: one quadrant of the room-interior atlas per window, or tiled every
+  // uvScale metres for wide shop windows
+  let uv;
+  if (opts.uvScale) {
+    const ou = rng.float(), su = (u1 - u0) / opts.uvScale, sv = (v1 - v0) / opts.uvScale;
+    uv = [ou, 0, ou + su, 0, ou + su, sv, ou, sv];
+  } else {
+    const ou = rng.chance(0.5) ? 0.5 : 0, ov = rng.chance(0.5) ? 0.5 : 0;
+    uv = [ou, ov, ou + 0.5, ov, ou + 0.5, ov + 0.5, ou, ov + 0.5];
+  }
+  batch.quad(gm, fr.p(u0, v0, d), fr.p(u1, v0, d), fr.p(u1, v1, d), fr.p(u0, v1, d), uv);
   batch.resetColor();
   // frame
   const ft = opts.frame ?? spec.frame;
@@ -254,7 +264,7 @@ function groundFloor(ctx, fr, L, base, gTop, spec) {
       batch.resetColor();
       // shop window: recessed glass with dark frame
       const holes = [{ u0: a, u1: b, v0: riser, v1: glassTop }];
-      windowOpening(ctx, fr, a, b, riser, glassTop, { ...spec, reveal: 0.18 }, { glassMat: 'shopGlass', frame: 'none', litP: 0.8 });
+      windowOpening(ctx, fr, a, b, riser, glassTop, { ...spec, reveal: 0.18 }, { glassMat: 'shopGlass', frame: 'none', litP: 0.8, uvScale: 3.4 });
       // transom strip between glass and fascia
       fr.rect(batch, 'paint', a, glassTop, b, fasciaBot, -0.05);
       // mullion(s)
@@ -296,7 +306,7 @@ function groundFloor(ctx, fr, L, base, gTop, spec) {
     fr.rect(batch, 'panel', 0, gTop - 0.8, L, gTop);
     const holes = [{ u0: 0.4, u1: L - 0.4, v0: base + 0.1, v1: gTop - 0.8 }];
     wallWithOpenings(ctx, fr, L, base, gTop - 0.8, holes, 'panel');
-    windowOpening(ctx, fr, 0.4, L - 0.4, base + 0.1, gTop - 0.8, { ...spec, stone: 'panel', reveal: 0.4 }, { glassMat: 'shopGlass', frame: 'none', litP: 0.9 });
+    windowOpening(ctx, fr, 0.4, L - 0.4, base + 0.1, gTop - 0.8, { ...spec, stone: 'panel', reveal: 0.4 }, { glassMat: 'shopGlass', frame: 'none', litP: 0.9, uvScale: 3.4 });
     for (let u = 2.4; u < L - 1; u += 2.4) fr.box(batch, 'ironGrey', u - 0.04, u + 0.04, base, gTop - 0.8, -0.4, -0.3);
   } else if (kind === 'blank') {
     fr.rect(batch, spec.groundStone || stone, 0, base, L, gTop);

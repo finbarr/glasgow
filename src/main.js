@@ -42,7 +42,7 @@ function floorAt(x, z) {
 // Viewpoints: [camera x, z, height-above-ground or absolute y], [target x, y, z]
 const island = PLATFORM_LAYOUT.platforms[3];
 const VIEWS = {
-  tower: { label: 'Clock tower', pos: [-96.8, 1.7, -212], target: [-73, 21, -126], street: true },
+  tower: { label: 'Clock tower', pos: [-106, 1.7, -149.5], target: [-76, 22, -127], street: true },
   entrance: { label: 'Gordon St entrance', pos: [14, 1.7, -148.5], target: [2, 7, -126], street: true },
   concourse: { label: 'Concourse', pos: [-30, 1.7, -106], target: [0, 6, -52], street: true },
   platforms: { label: 'Platforms', pos: [island.x1 - 2.2, 1.7, -40], target: [island.x1 - 3, 4, 60], street: true },
@@ -121,6 +121,7 @@ walk.addEventListener('unlock', () => { if (mode === 'walk') toggleWalk(); });
 
 let flight = null;
 function setView(name, instant = false) {
+  lastPoolUpdate = -1e9;
   if (name.startsWith('cam:')) {
     const [x, y, z, tx, ty, tz] = name.slice(4).split(',').map(Number);
     camera.position.set(x, y, z); orbit.target.set(tx, ty, tz); orbit.update();
@@ -151,6 +152,7 @@ async function init() {
   env = new Environment(renderer, scene);
   world = await buildWorld(scene, M, progress);
   setupComposer();
+  setupLightPool();
 
   const month = Number(params.get('month') || 6);
   const time = Number(params.get('time') || 17.5);
@@ -170,8 +172,36 @@ async function init() {
 function setLighting(opts) {
   env.set(opts);
   applyNight(M, env.night);
-  bloom.strength = 0.18 + env.night * 0.6;
-  bloom.threshold = env.night > 0.5 ? 0.6 : 0.92;
+  bloom.strength = 0.16 + env.night * 0.22;
+  bloom.threshold = env.night > 0.5 ? 0.85 : 0.95;
+  bloom.radius = 0.35;
+  M.glazingGlass.emissiveIntensity = 0.25 * (1 - env.night);
+  lastPoolUpdate = -1e9;
+}
+
+// Night-time: a small pool of real point lights moved to the lamps nearest the camera.
+const POOL = 16;
+const pool = [];
+let lastPoolUpdate = -1e9;
+function setupLightPool() {
+  for (let i = 0; i < POOL; i++) {
+    const l = new THREE.PointLight(0xffe2c0, 0, 32, 2);
+    l.castShadow = false;
+    pool.push(l); scene.add(l);
+  }
+}
+function updateLightPool(focus) {
+  const n = env.night;
+  if (n < 0.05) { if (pool[0].intensity !== 0) pool.forEach((l) => { l.intensity = 0; }); return; }
+  const lamps = world.lamps;
+  const scored = lamps.map((l) => [l, l.p.distanceToSquared(focus)]).sort((a, b) => a[1] - b[1]).slice(0, POOL);
+  scored.forEach(([lamp], i) => {
+    const l = pool[i];
+    l.position.copy(lamp.p);
+    if (lamp.kind === 'flood') { l.intensity = 120 * n; l.distance = 46; l.color.setHex(0xfff1e0); }
+    else if (lamp.kind === 'heritage') { l.intensity = 45 * n; l.distance = 24; l.color.setHex(0xffd9a8); }
+    else { l.intensity = 70 * n; l.distance = 30; l.color.setHex(0xffe8cc); }
+  });
 }
 
 function onResize() {
@@ -211,6 +241,10 @@ function frame() {
   // shadows follow the view
   const target = mode === 'walk' ? camera.getWorldDirection(tmp).multiplyScalar(40).add(camera.position) : orbit.target;
   env.follow(target, mode === 'walk' ? 60 : camera.position.distanceTo(orbit.target));
+  if (window.__glasgow && window.__glasgow.frames - lastPoolUpdate > 20) {
+    lastPoolUpdate = window.__glasgow.frames;
+    updateLightPool(mode === 'walk' ? camera.position : orbit.target.clone().lerp(camera.position, 0.3));
+  }
   // water ripples
   if (M.water.normalMap) M.water.normalMap.offset.x += dt * 0.004;
   composer.render(dt);

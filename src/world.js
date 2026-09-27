@@ -102,11 +102,20 @@ export async function buildWorld(scene, M, progress) {
     defs[k + '_glass'] = { geometry: v.glass, material: M.carGlass };
     defs[k + '_wheels'] = { geometry: v.wheels, material: M.tyre };
   }
+  // light positions for the night-time light pool
+  const lamps = [];
+  const v = new THREE.Vector3();
+  for (const [key, local, kind] of [['lampGlow', [0, 7.7, 1.55], 'street'], ['heritageGlow', [0, 5.0, 0], 'heritage']]) {
+    const set = inst.sets.get(key);
+    if (!set) continue;
+    for (const m of set.m) { v.set(...local).applyMatrix4(m); lamps.push({ p: v.clone(), kind }); }
+  }
+  for (let x = -55; x <= 50; x += 21) for (let z = -100; z <= 110; z += 26) lamps.push({ p: new THREE.Vector3(x, 11.5, z), kind: 'flood' });
   const props = inst.build(defs);
   props.name = 'props';
   scene.add(props);
 
   scene.add(buildDistantCity());
   progress('Lighting', 0.95); await tick();
-  return { water, city, props, usingOSM: !!osm };
+  return { water, city, props, lamps, usingOSM: !!osm };
 }
